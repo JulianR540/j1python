@@ -1,0 +1,71 @@
+
+
+import pandas as pd
+from pyspark.sql import SparkSession
+from pyspark.sql import functions as F
+from pyspark.sql.types import StringType, IntegerType
+from pyspark.sql.functions import to_date
+from pyspark.sql.functions import min, max ,sum,col, lit,round
+
+# File location and type
+file_location = "/FileStore/tables/acquisition_facebook_adds.csv"
+file_type = "csv"
+
+# CSV options
+infer_schema = "false"
+first_row_is_header = "true"
+delimiter = ","
+
+# The applied options are for CSV files. For other file types, these will be ignored.
+df_facebook = spark.read.format(file_type) \
+  .option("inferSchema", infer_schema) \
+  .option("header", first_row_is_header) \
+  .option("sep", delimiter) \
+  .load(file_location)
+
+
+
+df_facebook = df_facebook.withColumn("date", to_date(df_facebook["date"], "yyyy-MM-dd"))
+df_facebook = df_facebook.withColumn("spend", df_facebook["spend"].cast("float"))
+df_facebook = df_facebook.withColumn("NOM", lit("Shapr"))
+df_result = df_facebook.groupBy("NOM").agg(max("date"),min("date"))
+df_spent = df_facebook.groupBy("date").sum("spend")
+df_facebook_channel_daily = df_facebook.filter(F.col("channel").isin("Facebook")).groupBy("date","channel").sum("spend")
+df_facebook_pivot = df_facebook.groupBy("NOM").pivot("channel").sum("spend").display()
+df_facebook_channel_daily_pandas=df_facebook_channel_daily.toPandas()
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+sns.relplot(kind="line",
+            data=df_facebook_channel_daily_pandas,
+            x="date",
+            y="sum(spend)",
+            row="channel",
+            height=3,
+            aspect=12/3)
+plt.xlabel("date")
+plt.ylabel("spend")
+plt.title("Facebook spends over time")
+plt.show()
+
+# File location and type
+file_location = "/FileStore/tables/social_network_taxes.csv"
+file_type = "csv"
+
+# CSV options
+infer_schema = "false"
+first_row_is_header = "true"
+delimiter = ","
+
+# The applied options are for CSV files. For other file types, these will be ignored.
+df_tax = spark.read.format(file_type) \
+  .option("inferSchema", infer_schema) \
+  .option("header", first_row_is_header) \
+  .option("sep", delimiter) \
+  .load(file_location)
+
+
+
+df_facebook_merged = df_facebook.join(df_tax,on="channel",how="left").filter(F.col("channel").isin("Facebook"))
+df_facebook_merged = df_facebook_merged.withColumn("Real_spend",round(col("spend") + col("tax"),2))
