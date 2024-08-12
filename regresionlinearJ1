@@ -1,0 +1,54 @@
+from sklearn.linear_model import LinearRegression 
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+NBA_df = NBA_df.toPandas()
+
+# Séparation des caractéristiques (X) et de la variable cible (y)
+
+X = NBA_df[["poss","mp","do_ratio","pacing"]]
+#X = NBA_df[["mp"]]
+y = NBA_df[["win_rating"]]
+
+# Division des données en ensembles d'entraînement et de test
+
+X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.2 , random_state = 0)
+
+numerical_features = X_train.select_dtypes(include=["number"])
+non_numerical_features = X_train.select_dtypes(exclude=["number"])
+
+# Mise à l'échelle des caractéristiques
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Création d'une instance de modèle de régression linéaire
+
+lin_reg = LinearRegression()
+
+# Ajustement du modèle aux données d'entraînement
+lin_reg.fit(X_train_scaled, y_train)
+
+# Évaluation du modèle sur les données de test
+lin_reg.score(X_test_scaled,y_test)
+print(lin_reg.score(X_test_scaled,y_test))
+
+# Création d'un nouveau DataFrame pour de nouvelles données
+
+X_new = pd.DataFrame({
+    'poss': [4902],
+    'mp': [1845],
+    'do_ratio': [1.011],
+    'pacing': [0.381]
+}, index=[0])
+
+# Mise à l'échelle des nouvelles données
+X_new_scaled = scaler.transform(X_new)
+
+
+# Prédiction des valeurs de win_rating pour les nouvelles données mises à l'échelle
+
+print(lin_reg.predict(X_new_scaled))
+
