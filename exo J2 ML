@@ -1,0 +1,115 @@
+%md
+
+## Overview
+
+This notebook will show you how to create and query a table or DataFrame that you uploaded to DBFS. [DBFS](https://docs.databricks.com/user-guide/dbfs-databricks-file-system.html) is a Databricks File System that allows you to store data for querying inside of Databricks. This notebook assumes that you have a file already inside of DBFS that you would like to read from.
+
+This notebook is written in **Python** so the default cell type is Python. However, you can use different languages by using the `%LANGUAGE` syntax. Python, Scala, SQL, and R are all supported.
+from sklearn.linear_model import LinearRegression 
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+import pandas as pd
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import cross_val_score
+import numpy as np
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
+import pandas as pd
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.model_selection import train_test_split
+# File location and type
+file_location = "/dbfs/FileStore/tables/Iowa_housing_prices.csv"
+Iowa = pd.read_csv(file_location)
+
+
+
+
+missing_values = Iowa.isna().sum()
+columns_with_missing_values = missing_values[missing_values > 0]
+
+Iowa.describe()
+missing_values_percent = (Iowa.isna().sum() / Iowa.shape[0]) * 100
+
+columns_to_drop = missing_values_percent[missing_values_percent > 30].index
+
+# Supprimer les colonnes avec plus de 30% de valeurs manquantes
+Iowa = Iowa.drop(columns=columns_to_drop)
+
+# Calculer la moyenne de chaque colonne
+mean_columns = Iowa.mean()
+
+# Remplacer les valeurs manquantes par la moyenne de chaque colonne
+Iowa_filled = Iowa.fillna(mean_columns)
+
+# Remplacer les valeurs manquantes par la valeur la plus fréquente pour chaque colonne
+Iowa_filled = Iowa_filled.fillna(Iowa.mode().iloc[0])
+
+# Afficher le dataframe avec les valeurs manquantes remplacées par la valeur la plus fréquente
+
+
+# Afficher le dataframe avec les valeurs manquantes remplacées par la moyenne
+print(Iowa_filled)
+
+print("Colonnes supprimées :", columns_to_drop)
+missing_values = Iowa_filled.isna().sum()
+columns_with_missing_values = missing_values[missing_values > 0]
+columns_with_missing_values
+
+numerical_features_Train
+#X = Iowa_filled.drop(columns=["SalePrice"])
+#X = NBA_df[["mp"]]
+y = Iowa_filled["SalePrice"]
+X = Iowa_filled[['LotArea', 'LotConfig', 'LotShape', 'MSZoning', 'BldgType', 'Neighborhood', 'GarageCars']]
+
+# Division des données en ensembles d'entraînement et de test
+
+#Données numériques et non numérique train
+numerical_columns = X.select_dtypes(include=np.number).columns
+cat_columns = X.select_dtypes(exclude=np.number).columns
+cat_columns
+X=pd.get_dummies(X,columns=cat_columns)
+
+X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.2 , random_state = 0)
+
+
+
+scaler = StandardScaler()
+
+# Scale données numériques
+
+X_train[numerical_columns]= scaler.fit_transform(X_train[numerical_columns])
+X_test[numerical_columns]= scaler.fit_transform(X_test[numerical_columns])
+
+
+
+X_train
+from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
+# Création d'une instance de modèle de régression linéaire
+
+lin_reg = LinearRegression()
+
+
+# Ajustement du modèle aux données d'entraînement
+lin_reg.fit(X_train, y_train)
+
+# Évaluation du modèle sur les données de test
+lin_reg.score(X_test,y_test)
+y_pred = lin_reg.predict(X_test)
+
+r2 = r2_score(y_test, y_pred)
+mse = mean_squared_error(y_test, y_pred)
+mae = mean_absolute_error(y_test, y_pred)
+print(lin_reg.score(X_test,y_test))
+
+r2, mse, mae
+from sklearn.ensemble import RandomForestRegressor
+
+
+
+rf = RandomForestRegressor(n_estimators=100, random_state = 42)
+rf.fit(X_train, y_train)
+y_pred_rf = rf.predict(X_test)
+mae_rf = mean_absolute_error(y_test, y_pred_rf).round()
+mse_rf = mean_squared_error(y_test, y_pred_rf).round()
+r2_rf = r2_score(y_test, y_pred_rf).round(2)
+r2_rf,mse_rf,mae_rf
