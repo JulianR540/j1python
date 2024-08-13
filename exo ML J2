@@ -1,0 +1,163 @@
+from sklearn.linear_model import LinearRegression 
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+import pandas as pd
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import cross_val_score
+import numpy as np
+file_location = "/dbfs/FileStore/tables/posts.csv"
+
+posts_df = pd.read_csv(file_location)
+missing_values = posts_df.isna().sum()
+print(missing_values)
+
+unique_ids_count = posts_df['id'].nunique()
+print("Le nombre d'identifiants uniques dans la colonne 'id' est :", unique_ids_count)
+
+posts_df.count()
+
+
+sorted_posts_df = posts_df.sort_values(by='ts').drop_duplicates(subset='id', keep='last')
+print(sorted_posts_df)
+
+
+import plotly.express as px
+
+scatter_plot = px.scatter(sorted_posts_df, x='followers', y='likes', title='Scatter Plot of Likes vs. Followers')
+scatter_plot.show()
+
+from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
+
+# Séparation des caractéristiques (X) et de la variable cible (y)
+
+X = sorted_posts_df[["followers","posts","comments"]]
+#X = NBA_df[["mp"]]
+y = sorted_posts_df["likes"]
+
+
+# Division des données en ensembles d'entraînement et de test
+
+X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.2 , random_state = 0)
+
+numerical_features = X_train.select_dtypes(include=["number"])
+non_numerical_features = X_train.select_dtypes(exclude=["number"])
+
+# Mise à l'échelle des caractéristiques
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Création d'une instance de modèle de régression linéaire
+
+lin_reg = LinearRegression()
+
+
+
+score5 = cross_val_score(estimator=lin_reg, X=X_train_scaled, y= y_train, cv = 5)
+score10 = cross_val_score(estimator=lin_reg, X=X_train_scaled, y= y_train, cv = 10)
+
+
+# Ajustement du modèle aux données d'entraînement
+lin_reg.fit(X_train_scaled, y_train)
+
+# Évaluation du modèle sur les données de test
+lin_reg.score(X_test_scaled,y_test)
+y_pred = lin_reg.predict(X_test_scaled)
+
+r2 = r2_score(y_test, y_pred)
+mse = mean_squared_error(y_test, y_pred)
+mae = mean_absolute_error(y_test, y_pred)
+
+
+#lin_reg.predict(X_new)
+
+#print(score5)
+#print(score10)
+#print("Average cross-validated score 5:", np.mean(score5))
+#print("Average cross-validated score 10:", np.mean(score10))
+print(lin_reg.score(X_test_scaled,y_test))
+
+r2, mse, mae
+
+lin_reg.coef_
+lin_reg.intercept_
+file_location = "/dbfs/FileStore/tables/posts.csv"
+
+archive = pd.read_csv(file_location)
+
+# sort values by date
+
+archive = archive.sort_values(by='ts', ascending=True)
+
+# keep only most recent posts
+most_recent_posts = archive.drop_duplicates('id', keep='last')
+
+# keep from archive every posts except most recent
+posts_wo_most_recent = archive[~archive.index.isin(most_recent_posts.index)]
+
+# compute median of likes on previous posts
+median_last_posts = posts_wo_most_recent.groupby('id', as_index=False)[['likes']].median()
+
+# rename column likes by historical_likes
+median_last_posts = median_last_posts.rename({'likes': 'historical_likes'}, axis=1)
+
+# merge this colum to initial dataframe
+df_posts_new = most_recent_posts.merge(median_last_posts, on="id")
+
+
+
+
+
+# Séparation des caractéristiques (X) et de la variable cible (y)
+
+X = df_posts_new[["followers","posts","comments","historical_likes"]]
+#X = NBA_df[["mp"]]
+y = df_posts_new["likes"]
+
+
+# Division des données en ensembles d'entraînement et de test
+
+X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.2 , random_state = 0)
+
+
+# Mise à l'échelle des caractéristiques
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+
+# Création d'une instance de modèle de régression linéaire
+
+lin_reg = LinearRegression()
+
+
+
+score5 = cross_val_score(estimator=lin_reg, X=X_train_scaled, y= y_train, cv = 5)
+score10 = cross_val_score(estimator=lin_reg, X=X_train_scaled, y= y_train, cv = 10)
+
+
+# Ajustement du modèle aux données d'entraînement
+lin_reg.fit(X_train_scaled, y_train)
+
+# Évaluation du modèle sur les données de test
+lin_reg.score(X_test_scaled,y_test)
+y_pred = lin_reg.predict(X_test_scaled)
+
+r2 = r2_score(y_test, y_pred)
+mse = mean_squared_error(y_test, y_pred)
+mae = mean_absolute_error(y_test, y_pred)
+
+
+#lin_reg.predict(X_new)
+
+#print(score5)
+#print(score10)
+#print("Average cross-validated score 5:", np.mean(score5))
+#print("Average cross-validated score 10:", np.mean(score10))
+print(lin_reg.score(X_test_scaled,y_test))
+
+r2, mse, mae
+
+df_posts_new.describe()
